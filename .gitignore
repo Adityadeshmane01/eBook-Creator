@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+
+# Environment configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Runtime uploads
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Build output
+frontend/eBookCreator/dist/
