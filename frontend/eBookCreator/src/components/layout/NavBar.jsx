@@ -39,7 +39,7 @@ const Navbar = () => {
                         href="/"
                         className="flex items-center space-x-2.5 group"
                     >
-                        <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-purple-500 rounded-lg flex items-center justify-center">
+                        <div className="w-9 h-9 bg-linear-to-br from-violet-500 to-purple-500 rounded-lg flex items-center justify-center">
                             <BookOpen className="w-5 h-5 text-white" />
                         </div>
 
@@ -75,6 +75,7 @@ const Navbar = () => {
                                 avatar={user?.avatar}
                                 name={user?.name}
                                 email={user?.email}
+                                onLogout={logout}
                             />
                         ) : (
                             <>
@@ -87,7 +88,7 @@ const Navbar = () => {
 
                                 <a
                                     href="/signup"
-                                    className="px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 rounded-lg transition-all"
+                                    className="px-5 py-2 text-sm font-medium text-white bg-linear-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 rounded-lg transition-all"
                                 >
                                     Get Started
                                 </a>
@@ -128,7 +129,7 @@ const Navbar = () => {
                             {isAuthenticated ? (
                                 <div className="space-y-2">
                                     <div className="flex items-center space-x-3 px-4 py-3">
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-violet-500 to-purple-500 flex items-center justify-center text-white font-medium">
+                                        <div className="w-10 h-10 rounded-full bg-linear-to-r from-violet-500 to-purple-500 flex items-center justify-center text-white font-medium">
                                             {user?.name
                                                 ?.charAt(0)
                                                 .toUpperCase()}
@@ -163,7 +164,7 @@ const Navbar = () => {
 
                                     <a
                                         href="/signup"
-                                        className="block text-center px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-purple-600 rounded-lg"
+                                        className="block text-center px-4 py-2.5 text-sm font-medium text-white bg-linear-to-r from-violet-600 to-purple-600 rounded-lg"
                                     >
                                         Get Started
                                     </a>

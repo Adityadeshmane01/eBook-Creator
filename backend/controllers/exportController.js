@@ -751,6 +751,21 @@ doc.moveDown(
 
 };
 
+const addPageFurniture = (doc, bookTitle, pageNumber, totalPages) => {
+    const { left, right, top, bottom } = doc.page.margins;
+    const contentWidth = doc.page.width - left - right;
+    const footerY = doc.page.height - bottom + 24;
+
+    doc.save();
+    doc.strokeColor("#E5E7EB").lineWidth(0.5);
+    doc.moveTo(left, top - 22).lineTo(doc.page.width - right, top - 22).stroke();
+    doc.moveTo(left, footerY - 8).lineTo(doc.page.width - right, footerY - 8).stroke();
+    doc.font(TYPOGRAPHY.fonts.sans).fontSize(8).fillColor("#7B8190");
+    doc.text(bookTitle, left, top - 38, { width: contentWidth / 2, lineBreak: false });
+    doc.text(String(pageNumber), doc.page.width / 2 - 20, footerY, { width: 40, align: "center", lineBreak: false });
+    doc.restore();
+};
+
 
 const exportAsPDF = async (req, res) => {
     try {
@@ -764,47 +779,31 @@ const exportAsPDF = async (req, res) => {
             return res.status(401).json({ message: "Not authorized" });
         }
 
-        // Create PDF with safe settings
+        const safeTitle = book.title.replace(/[^a-zA-Z0-9]/g, "_");
+        const coverPath = book.coverImage && !book.coverImage.includes("pravatar") ? book.coverImage.substring(1) : "";
+        const hasCover = Boolean(coverPath && fs.existsSync(coverPath));
+        const chapterStartPage = hasCover ? 3 : 2;
+
         const doc = new PDFDocument({
-            margins: { top: 72, bottom: 72, left: 72, right: 72 },
+            size: "LETTER",
+            margins: { top: 88, bottom: 76, left: 82, right: 82 },
             bufferPages: true,
             autoFirstPage: true,
         });
-        // Set headers before piping
         res.setHeader("Content-Type", "application/pdf");
         res.setHeader(
             "Content-Disposition",
-            `attachment; filename="${book.title.replace(/[^a-zA-Z0-9]/g, "_")}.pdf"`
+            `attachment; filename="${safeTitle}.pdf"`
         );
 
         doc.pipe(res);
 
-        // Cover page with image if available
-        if (book.coverImage && !book.coverImage.includes("pravatar")) {
-            const imagePath = book.coverImage.substring(1);
+        if (hasCover) {
+            const imagePath = coverPath;
 
             try {
                 if (fs.existsSync(imagePath)) {
-                    const pageWidth =
-                        doc.page.width -
-                        doc.page.margins.left -
-                        doc.page.margins.right;
-
-                    const pageHeight =
-                        doc.page.height -
-                        doc.page.margins.top -
-                        doc.page.margins.bottom;
-
-                    doc.image(
-                        imagePath,
-                        doc.page.margins.left,
-                        doc.page.margins.top,
-                        {
-                            fit: [pageWidth * 0.8, pageHeight * 0.8],
-                            align: "center",
-                            valign: "center",
-                        }
-                    );
+                    doc.image(imagePath, 0, 0, { fit: [doc.page.width, doc.page.height], align: "center", valign: "center" });
                     doc.addPage();
                 }
             } catch (imgErr) {
@@ -813,13 +812,14 @@ const exportAsPDF = async (req, res) => {
         };
 
         // Title page
+        doc.moveDown(7);
         doc
             .font(TYPOGRAPHY.fonts.sansBold)
             .fontSize(TYPOGRAPHY.sizes.title)
             .fillColor(TYPOGRAPHY.colors.heading)
-            .text(book.title, { align: "center" });
+            .text(book.title, { align: "center", lineGap: 5 });
 
-        doc.moveDown(2);
+        doc.moveDown(1.5);
 
         if (book.subtitle && book.subtitle.trim()) {
             doc
@@ -835,33 +835,58 @@ const exportAsPDF = async (req, res) => {
             .fillColor(TYPOGRAPHY.colors.text)
             .text(`by ${book.author}`, { align: "center" });
 
+        doc.moveDown(14);
+        doc.font(TYPOGRAPHY.fonts.serifItalic).fontSize(10).fillColor("#7B8190").text("Created with AI eBook Creator", { align: "center" });
+
+        // Contents page
+        doc.addPage();
+        doc.font(TYPOGRAPHY.fonts.sansBold).fontSize(20).fillColor(TYPOGRAPHY.colors.heading).text("Contents", { align: "left" });
+        doc.moveDown(1.5);
+        (book.chapters || []).forEach((chapter, index) => {
+            doc.font(TYPOGRAPHY.fonts.serif).fontSize(12).fillColor(TYPOGRAPHY.colors.text);
+            doc.text(`${String(index + 1).padStart(2, "0")}    ${chapter.title || `Chapter ${index + 1}`}`, { continued: false, lineGap: 8 });
+        });
+
         // Process chapters
         if (book.chapters && book.chapters.length > 0) {
             book.chapters.forEach((chapter, index) => {
                 try {
                     doc.addPage();
 
-                    // Chapter title
+                    doc.font(TYPOGRAPHY.fonts.sans).fontSize(10).fillColor(TYPOGRAPHY.colors.accent).text(`CHAPTER ${String(index + 1).padStart(2, "0")}`, { characterSpacing: 1.5 });
+                    doc.moveDown(0.8);
                     doc
                         .font(TYPOGRAPHY.fonts.sansBold)
                         .fontSize(TYPOGRAPHY.sizes.chapterTitle)
                         .fillColor(TYPOGRAPHY.colors.heading)
                         .text(
                             chapter.title || `Chapter ${index + 1}`,
-                            { align: "left" }
+                            { align: "left", lineGap: 4 }
                         );
-                    doc.moveDown(
-                        TYPOGRAPHY.spacing.chapterSpacing / TYPOGRAPHY.sizes.body
-                    );
+                    doc.moveDown(1.2);
+
+                    if (chapter.description && chapter.description.trim()) {
+                        doc.font(TYPOGRAPHY.fonts.serifItalic).fontSize(11).fillColor("#687080").text(chapter.description.trim(), { lineGap: 3 });
+                        doc.moveDown(1.5);
+                    }
 
                     // Chapter content
                     if (chapter.content && chapter.content.trim()) {
                         renderMarkdown(doc, chapter.content);
+                    } else {
+                        doc.font(TYPOGRAPHY.fonts.serifItalic).fontSize(TYPOGRAPHY.sizes.body).fillColor("#7B8190").text("This chapter does not have any content yet.");
                     }
                 } catch (chapterError) {
                     console.error(`Error processing chapter ${index}:`, chapterError);
                 }
             });
+        }
+
+        // Add consistent running furniture after all pages have been laid out.
+        const pageRange = doc.bufferedPageRange();
+        for (let pageIndex = chapterStartPage; pageIndex < pageRange.count; pageIndex += 1) {
+            doc.switchToPage(pageIndex);
+            addPageFurniture(doc, book.title, pageIndex - chapterStartPage + 1, pageRange.count - chapterStartPage);
         }
         // Finalize the document
         doc.end();

@@ -15,4 +15,20 @@
   body{
     background-color: #fcfbfc;
   }
+
+    .editor-workspace {
+      background-color: #f8f8ff;
+      background-image: radial-gradient(rgba(124, 58, 237, 0.12) 0.7px, transparent 0.7px);
+      background-size: 20px 20px;
+    }
+
+    .editor-canvas {
+      box-shadow: 0 24px 60px -34px rgba(47, 42, 35, 0.45);
+    }
+
+    .editor-stat {
+      border: 1px solid rgba(226, 222, 215, 0.9);
+      background: rgba(255, 255, 255, 0.68);
+      backdrop-filter: blur(10px);
+    }
 }

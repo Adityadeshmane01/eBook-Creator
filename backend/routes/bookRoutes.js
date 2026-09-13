@@ -20,6 +20,16 @@ router.route("/").post(createBook).get(getBooks);
 
 router.route("/:id").get(getBookById).put(updateBook).delete(deleteBook);
 
-router.route("/cover/:id").put(upload, updateBookCover);
+router.route("/cover/:id").put((req, res, next) => {
+  upload(req, res, (error) => {
+    if (!error) return next();
+
+    if (error.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({ message: "Cover image must be 10 MB or smaller." });
+    }
+
+    return res.status(400).json({ message: error.message || "Invalid cover image." });
+  });
+}, updateBookCover);
 
 module.exports = router;

@@ -1,8 +1,9 @@
-import { ChevronDown, User } from "lucide-react";
+import { ChevronDown, LogOut, User } from "lucide-react";
 
 const ProfileDropdown = ({
 	isOpen,
 	onToggle,
+	onLogout,
 	avatar,
 	name = "User",
 	email,
@@ -65,6 +66,15 @@ const ProfileDropdown = ({
 					>
 						Dashboard
 					</a>
+					<button
+						type="button"
+						onClick={onLogout}
+						className="mt-1 flex w-full items-center gap-2 rounded-md border-t border-gray-100 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+						role="menuitem"
+					>
+						<LogOut className="h-4 w-4" />
+						<span>Sign out</span>
+					</button>
 				</div>
 			)}
 		</div>

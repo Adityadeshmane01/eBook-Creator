@@ -1,6 +1,7 @@
 //import React from "react";
 import { Routes, Route } from 'react-router-dom';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import PublicOnlyRoute from './components/auth/PublicOnlyRoute';
 import LoginPage from "./pages/LoginPage"
 import LandingPage from "./pages/LandingPage"
 import SignupPage from "./pages/SignupPage"
@@ -14,8 +15,8 @@ const App = () => {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
+        <Route path="/signup" element={<PublicOnlyRoute><SignupPage /></PublicOnlyRoute>} />
 
         {/* Protected Routes */}
 
@@ -36,7 +37,7 @@ const App = () => {
 
         <Route
         path='/profile'
-        element={<ProfilePage/>}
+        element={<ProtectedRoute><ProfilePage /></ProtectedRoute>}
         />
       </Routes>
     </div>

@@ -1,5 +1,7 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AuthContext } from "./authContextValue";
+import axiosInstance from "../utils/axiosInstance";
+import { API_PATHS } from "../utils/apiPaths";
 
 const getStoredUser = () => {
   try {
@@ -14,7 +16,7 @@ const getStoredUser = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(getStoredUser);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getStoredUser()));
 
   const logout = useCallback(() => {
@@ -28,36 +30,54 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkAuthStatus = useCallback(async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const userStr = localStorage.getItem("user");
+    const token = localStorage.getItem("token");
 
-      if (token && userStr) {
-        const userData = JSON.parse(userStr);
-        setUser(userData);
-        setIsAuthenticated(true);
-      }
-    } catch (error) {
-      console.error("Auth check failed:", error);
-      logout();
+    if (!token) {
+      setUser(null);
+      setIsAuthenticated(false);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { data } = await axiosInstance.get(API_PATHS.AUTH.GET_PROFILE);
+      localStorage.setItem("user", JSON.stringify(data));
+      setUser(data);
+      setIsAuthenticated(true);
+    } catch {
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
+      setUser(null);
+      setIsAuthenticated(false);
     } finally {
       setLoading(false);
     }
-  }, [logout]);
+  }, []);
 
-  const login = (userData, token) => {
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      checkAuthStatus();
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [checkAuthStatus]);
+
+  const login = useCallback((userData, token) => {
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(userData));
 
     setUser(userData);
     setIsAuthenticated(true);
-  };
+  }, []);
 
-const updateUser = (updatedUserData) => {
-     const newUserData = { ...user, ...updatedUserData };
-    localStorage.setItem("user", JSON.stringify(newUserData));
-    setUser(newUserData);
- };
+  const updateUser = useCallback((updatedUserData) => {
+    setUser((currentUser) => {
+      const newUserData = { ...currentUser, ...updatedUserData };
+      localStorage.setItem("user", JSON.stringify(newUserData));
+      return newUserData;
+    });
+  }, []);
 
 const value = {
   user,

@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
 const User = require('../models/User');
 
 // Helper : Generate JWT
@@ -10,7 +11,8 @@ const generateToken = (id) => {
 // @route POST/api/auth/register
 // @access Public 
 exports.registerUser = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email: rawEmail, password } = req.body;
+  const email = rawEmail?.trim().toLowerCase();
 
   try {
     if (!name || !email || !password) {
@@ -44,12 +46,26 @@ exports.registerUser = async (req, res) => {
 // @@access Public
 
 exports.loginUser = async (req, res) => {
-  const { email, password } = req.body;
+  const { email: rawEmail, password } = req.body;
+  const email = rawEmail?.trim().toLowerCase();
 
   try {
     const user = await User.findOne({ email }).select("+password");
 
-    if (user && (await user.matchPassword(password))) {
+    const isLegacyPassword = user && !user.password.startsWith("$2");
+    const passwordMatches = user && isLegacyPassword
+      ? user.password === password
+      : user && await user.matchPassword(password);
+
+    if (user && passwordMatches) {
+      if (isLegacyPassword) {
+        const passwordHash = await bcrypt.hash(password, 10);
+        await User.updateOne(
+          { _id: user._id },
+          { $set: { password: passwordHash } },
+        );
+      }
+
       res.json({
         message: "Login successful",
         _id: user._id,

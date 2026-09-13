@@ -15,6 +15,11 @@ axiosInstance.interceptors.request.use(
     (config) => {
         const accessToken = localStorage.getItem("token");
 
+        if (config.data instanceof FormData) {
+            delete config.headers["Content-Type"];
+            delete config.headers["content-type"];
+        }
+
         if (accessToken) {
             config.headers.Authorization = `Bearer ${accessToken}`;
         }
@@ -32,13 +37,20 @@ axiosInstance.interceptors.response.use(
         return response;
     },
     (error) => {
-        // Handle common errors globally
         if (error.response) {
-            if (error.response.status === 500) {
+            if (error.response.status === 401 && localStorage.getItem("token")) {
+                localStorage.removeItem("token");
+                localStorage.removeItem("refreshToken");
+                localStorage.removeItem("user");
+
+                if (window.location.pathname !== "/login") {
+                    window.location.replace("/login");
+                }
+            } else if (error.response.status === 500) {
                 console.error("Server error. Please try again later.");
-            } else if (error.code === "ECONNABORTED") {
-                console.error("Request timeout. Please try again.");
             }
+        } else if (error.code === "ECONNABORTED") {
+            console.error("Request timeout. Please try again.");
         }
 
         return Promise.reject(error);

@@ -3,7 +3,7 @@ const path = require("path");
 const fs = require("fs");
 
 // Create uploads directory if it doesn't exist
-const uploadDir = "uploads";
+const uploadDir = path.join(__dirname, "..", "uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -23,26 +23,36 @@ const storage = multer.diskStorage({
 
 // Check file type
 function checkFileType(file, cb) {
-  const filetypes = /jpeg|jpg|png|gif/;
-  const extname = filetypes.test(
-    path.extname(file.originalname).toLowerCase()
-  );
-  const mimetype = filetypes.test(file.mimetype);
+  const allowedTypes = new Map([
+    [".jpg", ["image/jpeg", "image/jpg"]],
+    [".jpeg", ["image/jpeg", "image/jpg"]],
+    [".png", ["image/png", "image/x-png"]],
+    [".webp", "image/webp"],
+    [".gif", "image/gif"],
+    [".bmp", "image/bmp"],
+    [".avif", "image/avif"],
+    [".tif", "image/tiff"],
+    [".tiff", "image/tiff"],
+    [".heic", "image/heic"],
+    [".heif", "image/heif"],
+  ]);
+  const extension = path.extname(file.originalname).toLowerCase();
+  const expectedMimeType = allowedTypes.get(extension);
 
-  if (mimetype && extname) {
+  if (expectedMimeType && expectedMimeType.includes(file.mimetype)) {
     return cb(null, true);
-  } else {
-    cb("Error: Images Only!");
   }
+
+  cb(new Error("Cover must be a JPG, JPEG, PNG, WebP, GIF, BMP, or AVIF image."));
 }
 
 // Initialize upload
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
+  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: function (req, file, cb) {
     checkFileType(file, cb);
   },
-}).single("coverImage"); // Field name for the uploaded file
+}).single("cover");
 
 module.exports = upload;
